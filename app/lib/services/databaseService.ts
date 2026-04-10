@@ -7,7 +7,7 @@ export async function getMeetingRounds() {
   try {
     const [rows] = await pool.query(`
       SELECT * FROM meeting_rounds 
-      ORDER BY year DESC, round_num DESC
+      ORDER BY meeting_year DESC, round_no DESC
     `);
     
     const roundsList = rows as any[];
@@ -20,10 +20,10 @@ export async function getMeetingRounds() {
       
       return {
         id: round.id,
-        year: round.year,
-        round: round.round_num,
-        date: new Date(round.date).toISOString().split('T')[0],
-        time: round.time,
+        year: round.meeting_year,
+        round: round.round_no,
+        date: new Date(round.meeting_date).toISOString().split('T')[0],
+        time: round.meeting_time,
         location: round.location || '',
         attendees: attendees || [],
         aiSummary: round.ai_summary || '',
@@ -61,7 +61,7 @@ export async function createMeetingRound(round: Partial<MeetingRound>) {
   try {
     const id = round.id || `round-${round.year}-${round.round}`;
     await pool.query(
-      `INSERT INTO meeting_rounds (id, year, round_num, date, time, location, attendees, ai_summary, duration) 
+      `INSERT INTO meeting_rounds (id, meeting_year, round_no, meeting_date, meeting_time, location, attendees, ai_summary, duration) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id, 
@@ -88,8 +88,8 @@ export async function updateMeetingRound(id: string, updates: Partial<MeetingRou
     if (updates.attendees) {
       await pool.query('UPDATE meeting_rounds SET attendees = ? WHERE id = ?', [JSON.stringify(updates.attendees), id]);
     }
-    if (updates.date) await pool.query('UPDATE meeting_rounds SET date = ? WHERE id = ?', [updates.date, id]);
-    if (updates.time) await pool.query('UPDATE meeting_rounds SET time = ? WHERE id = ?', [updates.time, id]);
+    if (updates.date) await pool.query('UPDATE meeting_rounds SET meeting_date = ? WHERE id = ?', [updates.date, id]);
+    if (updates.time) await pool.query('UPDATE meeting_rounds SET meeting_time = ? WHERE id = ?', [updates.time, id]);
     if (updates.location) await pool.query('UPDATE meeting_rounds SET location = ? WHERE id = ?', [updates.location, id]);
     if (updates.aiSummary) await pool.query('UPDATE meeting_rounds SET ai_summary = ? WHERE id = ?', [updates.aiSummary, id]);
     if (updates.duration) await pool.query('UPDATE meeting_rounds SET duration = ? WHERE id = ?', [updates.duration, id]);
