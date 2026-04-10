@@ -36,7 +36,7 @@ export const useMeetingStore = create<MeetingStoreState>((set, get) => ({
     try {
       const newRound = await databaseService.createMeetingRound(round);
       // 안건이 함께 있는 경우 저장
-      if (round.agendas && round.agendas.length > 0) {
+      if (newRound && newRound.id && round.agendas && round.agendas.length > 0) {
         await databaseService.saveAgendas(newRound.id, round.agendas);
       }
       // UI 즉시 업데이트를 위해 다시 로드

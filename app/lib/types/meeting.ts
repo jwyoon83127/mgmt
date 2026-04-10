@@ -37,6 +37,7 @@ export interface Agenda {
   followUpDeadline?: Date;
   followUpStatus?: FollowUpStatus;
   previewComments?: Comment[];
+  transcript?: string;
 }
 
 export interface Meeting {
