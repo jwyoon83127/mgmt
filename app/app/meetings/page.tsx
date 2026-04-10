@@ -27,8 +27,15 @@ export default function MeetingsPage() {
     attendees: '',
   });
 
-  const handleCreateRound = (e: React.FormEvent) => {
+  const handleCreateRound = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 필수값 검증
+    if (!newRoundData.year || !newRoundData.round || !newRoundData.date || !newRoundData.time || !newRoundData.location) {
+      alert("모든 필수 항목을 입력해주세요.");
+      return;
+    }
+
     const newRound: MeetingRound = {
       id: `round-${newRoundData.year}-${newRoundData.round}`,
       year: newRoundData.year,
@@ -36,14 +43,27 @@ export default function MeetingsPage() {
       date: newRoundData.date,
       time: newRoundData.time,
       location: newRoundData.location,
-      attendees: newRoundData.attendees.split(',').map(s => s.trim()).filter(s => s),
+      attendees: newRoundData.attendees ? newRoundData.attendees.split(',').map(s => s.trim()).filter(s => s) : [],
       agendas: [],
       voteStats: { approved: 0, conditional: 0, review: 0 },
       duration: '00:00:00',
       createdAt: new Date(),
     };
-    addRound(newRound);
-    setIsCreating(false);
+
+    try {
+      await addRound(newRound);
+      setIsCreating(false);
+      
+      // 상태 초기화
+      setNewRoundData(prev => ({
+        ...prev,
+        round: prev.round + 1,
+        attendees: ''
+      }));
+    } catch (err) {
+      console.error(err);
+      alert("신규 회차 생성에 실패했습니다. 입력값을 확인해주세요.");
+    }
   };
 
   const getVoteResultColor = (result: VoteType | VoteResult) => {

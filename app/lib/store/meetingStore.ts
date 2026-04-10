@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { MeetingRound, VoteType } from '@/lib/types/meeting';
 
-import { databaseService } from '@/lib/services/databaseService';
+import * as databaseService from '@/lib/services/databaseService';
 
 interface MeetingStoreState {
   rounds: MeetingRound[];
