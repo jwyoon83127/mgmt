@@ -1,0 +1,186 @@
+@import "tailwindcss";
+
+/* ===== Design Tokens (DESIGN.md 기준 — Tailwind v4 @theme) ===== */
+@theme inline {
+  /* Brand */
+  --color-brand-primary: #2a676c;
+  --color-brand-dim: #1b5b60;
+  --color-brand-container: #b1edf2;
+  --color-brand-on-container: #00474c;
+
+  /* UI surface */
+  --color-ui-surface: #f8f9fa;
+  --color-ui-low: #f1f4f6;
+  --color-ui-lowest: #ffffff;
+  --color-ui-high: #e3e9ec;
+  --color-ui-highest: #dbe4e7;
+  --color-ui-on-surface: #2b3437;
+  --color-ui-variant: #586064;
+
+  /* Status */
+  --color-status-tertiary: #1c6d25;
+  --color-status-t-container: #9df197;
+  --color-status-on-t-container: #005c15;
+  --color-status-error: #ba1a1a;
+  --color-status-e-container: #ffdad6;
+  --color-status-on-e-container: #410002;
+  --color-status-secondary: #4d626c;
+  --color-status-s-container: #cfe6f2;
+  --color-status-on-s-container: #0a1e28;
+
+  /* Shadows */
+  --shadow-ambient: 0 20px 40px rgba(43, 52, 55, 0.06);
+  --shadow-layer: 0 4px 12px rgba(43, 52, 55, 0.03);
+
+  /* Fonts */
+  --font-sans: var(--font-inter), sans-serif;
+  --font-display: var(--font-manrope), sans-serif;
+}
+
+/* ===== Base ===== */
+:root {
+  --background: #f8f9fa;
+  --foreground: #2b3437;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== Component Classes ===== */
+@layer components {
+  .glass-header {
+    @apply bg-white/80 backdrop-blur-xl border-b border-ui-high/40 sticky top-0 z-50;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm
+      text-white cursor-pointer
+      transition-all duration-200
+      hover:-translate-y-0.5 active:translate-y-0;
+    background: linear-gradient(to bottom, #2a676c, #1b5b60);
+    box-shadow: 0 2px 8px rgba(42, 103, 108, 0.35);
+  }
+
+  .btn-primary:hover {
+    box-shadow: 0 4px 16px rgba(42, 103, 108, 0.45);
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm
+      text-ui-on-surface bg-ui-low border border-ui-high
+      hover:bg-ui-high cursor-pointer
+      transition-all duration-200;
+  }
+
+  .layer-card {
+    @apply bg-white rounded-2xl
+      hover:-translate-y-0.5
+      transition-all duration-200;
+    box-shadow: var(--shadow-ambient);
+  }
+
+  .layer-card:hover {
+    box-shadow: 0 24px 48px rgba(43, 52, 55, 0.1);
+  }
+
+  .list-row {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl
+      hover:bg-ui-low cursor-pointer
+      transition-colors duration-150;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold;
+  }
+
+  .drawer-panel {
+    @apply fixed top-0 right-0 h-full bg-white flex flex-col z-50
+      transition-transform duration-300 ease-out;
+    box-shadow: -8px 0 48px rgba(43, 52, 55, 0.12);
+  }
+}
+
+/* ===== Animations ===== */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.25s ease-out forwards;
+}
+
+
+/* ===== Print Styles (PDF Export) ===== */
+@media print {
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+
+  /* 배경색 강제 출력 */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* 인쇄 시 전역 설정 - 모든 스크롤 컨테이너 해제 */
+  html, body {
+    visibility: hidden !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+
+  /* 모든 부모 요소의 높이 제한과 스크롤링 해제 */
+  div:has(> .printable-report),
+  .drawer-panel,
+  .drawer-panel > div,
+  .printable-report-wrapper {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  /* 보고서 영역 강제 노출 및 확장 */
+  .printable-report,
+  .printable-report * {
+    visibility: visible !important;
+    overflow: visible !important;
+  }
+
+  .printable-report {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    display: block !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
