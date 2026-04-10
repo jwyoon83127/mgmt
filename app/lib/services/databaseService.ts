@@ -1,115 +1,176 @@
-import { supabase } from '../supabaseClient';
+'use server';
+
+import pool from '../db';
 import { MeetingRound, Agenda, CeoReport } from '../types/meeting';
 
 export const databaseService = {
   // --- Meeting Rounds ---
   async getMeetingRounds() {
-    const { data: rounds, error } = await supabase
-      .from('meeting_rounds')
-      .select(`
-        *,
-        agendas (*)
-      `)
-      .order('year', { ascending: false })
-      .order('round', { ascending: false });
+    try {
+      const [rows] = await pool.query(`
+        SELECT * FROM meeting_rounds 
+        ORDER BY year DESC, round_num DESC
+      `);
+      
+      const roundsList = rows as any[];
+      const [agendas] = await pool.query(`SELECT * FROM agendas`);
+      const agendasList = agendas as any[];
 
-    if (error) throw error;
-    return rounds as MeetingRound[];
+      // Map DB schema to Frontend types
+      return roundsList.map(round => {
+        let attendees = [];
+        try { attendees = typeof round.attendees === 'string' ? JSON.parse(round.attendees) : round.attendees; } catch(e) {}
+        
+        return {
+          id: round.id,
+          year: round.year,
+          round: round.round_num,
+          date: new Date(round.date).toISOString().split('T')[0],
+          time: round.time,
+          location: round.location || '',
+          attendees: attendees || [],
+          aiSummary: round.ai_summary || '',
+          duration: round.duration || '00:00:00',
+          agendas: agendasList
+            .filter(a => a.meeting_id === round.id)
+            .map(a => ({
+              index: a.agenda_index,
+              title: a.title,
+              summary: a.summary || '',
+              voteResult: a.vote_result,
+              voteComment: a.vote_comment || '',
+              transcript: a.transcript || ''
+            })),
+          voteStats: {
+            approved: agendasList.filter(a => a.meeting_id === round.id && a.vote_result === 'approved').length,
+            conditional: agendasList.filter(a => a.meeting_id === round.id && a.vote_result === 'conditional').length,
+            review: agendasList.filter(a => a.meeting_id === round.id && a.vote_result === 'review').length
+          },
+          createdAt: round.created_at
+        } as MeetingRound;
+      });
+    } catch (error) {
+      console.error('getMeetingRounds error:', error);
+      throw new Error('Failed to fetch meeting rounds');
+    }
   },
 
   async createMeetingRound(round: Partial<MeetingRound>) {
-    const { data, error } = await supabase
-      .from('meeting_rounds')
-      .insert([{
-        year: round.year,
-        round: round.round,
-        date: round.date,
-        time: round.time,
-        location: round.location,
-        attendees: round.attendees,
-        ai_summary: round.aiSummary,
-        duration: round.duration,
-        status: 'planned'
-      }])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    try {
+      const id = round.id || `round-${round.year}-${round.round}`;
+      await pool.query(
+        `INSERT INTO meeting_rounds (id, year, round_num, date, time, location, attendees, ai_summary, duration) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id, 
+          round.year, 
+          round.round, 
+          round.date, 
+          round.time, 
+          round.location, 
+          JSON.stringify(round.attendees || []), 
+          round.aiSummary || '', 
+          round.duration || '00:00:00'
+        ]
+      );
+      
+      const newRound = await this.getMeetingRoundById(id);
+      return newRound;
+    } catch (error) {
+      console.error('createMeetingRound error:', error);
+      throw new Error('Failed to create meeting round');
+    }
   },
 
   async updateMeetingRound(id: string, updates: Partial<MeetingRound>) {
-    const { data, error } = await supabase
-      .from('meeting_rounds')
-      .update({
-        date: updates.date,
-        time: updates.time,
-        location: updates.location,
-        attendees: updates.attendees,
-        ai_summary: updates.aiSummary,
-        duration: updates.duration
-      })
-      .eq('id', id)
-      .select()
-      .single();
+    try {
+      if (updates.attendees) {
+        await pool.query('UPDATE meeting_rounds SET attendees = ? WHERE id = ?', [JSON.stringify(updates.attendees), id]);
+      }
+      if (updates.date) await pool.query('UPDATE meeting_rounds SET date = ? WHERE id = ?', [updates.date, id]);
+      if (updates.time) await pool.query('UPDATE meeting_rounds SET time = ? WHERE id = ?', [updates.time, id]);
+      if (updates.location) await pool.query('UPDATE meeting_rounds SET location = ? WHERE id = ?', [updates.location, id]);
+      if (updates.aiSummary) await pool.query('UPDATE meeting_rounds SET ai_summary = ? WHERE id = ?', [updates.aiSummary, id]);
+      if (updates.duration) await pool.query('UPDATE meeting_rounds SET duration = ? WHERE id = ?', [updates.duration, id]);
+      
+      return await this.getMeetingRoundById(id);
+    } catch (error) {
+      console.error('updateMeetingRound error:', error);
+      throw new Error('Failed to update meeting round');
+    }
+  },
 
-    if (error) throw error;
-    return data;
+  async getMeetingRoundById(id: string) {
+    const rounds = await this.getMeetingRounds();
+    return rounds.find(r => r.id === id);
   },
 
   // --- Agendas ---
   async saveAgendas(meetingId: string, agendas: Partial<Agenda>[]) {
-    // Delete existing agendas for this meeting first (simple sync strategy)
-    await supabase.from('agendas').delete().eq('meeting_id', meetingId);
-
-    const formattedAgendas = agendas.map(a => ({
-      meeting_id: meetingId,
-      index: a.index,
-      title: a.title,
-      summary: a.summary,
-      vote_result: a.voteResult,
-      vote_comment: a.voteComment,
-      transcript: a.transcript
-    }));
-
-    const { data, error } = await supabase
-      .from('agendas')
-      .insert(formattedAgendas)
-      .select();
-
-    if (error) throw error;
-    return data;
+    try {
+      await pool.query(`DELETE FROM agendas WHERE meeting_id = ?`, [meetingId]);
+      
+      for (const a of agendas) {
+        const agendaId = `agenda-${meetingId}-${a.index}`;
+        await pool.query(
+          `INSERT INTO agendas (id, meeting_id, agenda_index, title, summary, vote_result, vote_comment, transcript) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [agendaId, meetingId, a.index, a.title, a.summary || '', a.voteResult, a.voteComment || '', a.transcript || '']
+        );
+      }
+      return true;
+    } catch (error) {
+      console.error('saveAgendas error:', error);
+      throw new Error('Failed to save agendas');
+    }
   },
 
   // --- CEO Reports ---
   async getCeoReport(roundId: string) {
-    const { data, error } = await supabase
-      .from('ceo_reports')
-      .select('*')
-      .eq('round_id', roundId)
-      .maybeSingle();
-
-    if (error) throw error;
-    return data as CeoReport | null;
+    try {
+      const [rows] = await pool.query(`SELECT * FROM ceo_reports WHERE round_id = ?`, [roundId]);
+      const reportList = rows as any[];
+      if (reportList.length === 0) return null;
+      
+      const report = reportList[0];
+      return {
+        id: report.id,
+        roundId: report.round_id,
+        title: report.title,
+        summary: report.summary,
+        keyDecisions: typeof report.key_decisions === 'string' ? JSON.parse(report.key_decisions) : report.key_decisions || [],
+        actionItems: typeof report.action_items === 'string' ? JSON.parse(report.action_items) : report.action_items || [],
+        risks: typeof report.risks === 'string' ? JSON.parse(report.risks) : report.risks || [],
+        opportunities: typeof report.opportunities === 'string' ? JSON.parse(report.opportunities) : report.opportunities || [],
+        generatedAt: report.generated_at
+      } as CeoReport;
+    } catch (error) {
+      console.error('getCeoReport error:', error);
+      throw new Error('Failed to fetch CEO report');
+    }
   },
 
   async saveCeoReport(report: Partial<CeoReport>) {
-    const { data, error } = await supabase
-      .from('ceo_reports')
-      .upsert({
-        round_id: report.roundId,
-        title: report.title,
-        summary: report.summary,
-        key_decisions: report.keyDecisions,
-        action_items: report.actionItems,
-        risks: report.risks,
-        opportunities: report.opportunities,
-        generated_at: new Date().toISOString()
-      }, { onConflict: 'round_id' })
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    try {
+      const id = report.id || `ceo-report-${report.roundId}`;
+      await pool.query(
+        `INSERT INTO ceo_reports (id, round_id, title, summary, key_decisions, action_items, risks, opportunities) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE 
+         title=VALUES(title), summary=VALUES(summary), key_decisions=VALUES(key_decisions), 
+         action_items=VALUES(action_items), risks=VALUES(risks), opportunities=VALUES(opportunities)`,
+        [
+          id, report.roundId, report.title, report.summary,
+          JSON.stringify(report.keyDecisions || []),
+          JSON.stringify(report.actionItems || []),
+          JSON.stringify(report.risks || []),
+          JSON.stringify(report.opportunities || [])
+        ]
+      );
+      return await this.getCeoReport(report.roundId!);
+    } catch (error) {
+      console.error('saveCeoReport error:', error);
+      throw new Error('Failed to save CEO report');
+    }
   }
 };
