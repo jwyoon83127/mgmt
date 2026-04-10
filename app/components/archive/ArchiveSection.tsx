@@ -1,15 +1,45 @@
 'use client';
 
-import { mockKpi, mockArchiveRows } from '@/lib/mock/archive';
+import { useEffect } from 'react';
+import { useMeetingStore } from '@/lib/store/meetingStore';
 import { useAgendaStore } from '@/lib/store/agendaStore';
 import KpiGlances from './KpiGlances';
 import AgendaTable from './AgendaTable';
+import { ArchiveRow, FollowUpStatus } from '@/lib/types/meeting';
 
 export default function ArchiveSection() {
   const { submittedAgendas } = useAgendaStore();
+  const { rounds, fetchRounds } = useMeetingStore();
 
-  // 모의 데이터와 제출된 안건 합치기
-  const allRows = [...submittedAgendas, ...mockArchiveRows];
+  // 최초 로드 시 DB에서 회의 데이터 가져오기
+  useEffect(() => {
+    fetchRounds();
+  }, [fetchRounds]);
+
+  // DB에서 불러온 회의 데이터를 테이블(ArchiveRow) 형식으로 변환
+  const dbRows: ArchiveRow[] = [];
+  rounds.forEach(r => {
+    r.agendas?.forEach((a, i) => {
+      // 투표 결과에 따른 mock 이행 상태 생성 로직 (현재는 추적 컬럼이 없으므로 임의로 생성)
+      let status: FollowUpStatus = 'none';
+      if (a.voteResult === 'approved') status = 'completed';
+      else if (a.voteResult === 'conditional') status = 'in-progress';
+      else if (a.voteResult === 'review') status = 'delayed';
+
+      dbRows.push({
+        id: `db-${r.id}-${i}`,
+        round: r.round,
+        agendaTitle: a.title,
+        submittedAt: r.date.replace(/-/g, '.'), // YYYY.MM.DD 포맷으로 통일
+        voteResult: a.voteResult as 'approved' | 'conditional' | 'review' | 'pending',
+        followUpDeadline: r.date.replace(/-/g, '.'),
+        followUpStatus: status,
+      });
+    });
+  });
+
+  // 제출된 신규 안건과 DB 안건 합치기
+  const allRows = [...submittedAgendas, ...dbRows];
 
   // KPI 동적 계산
   const totalCount = allRows.length;
