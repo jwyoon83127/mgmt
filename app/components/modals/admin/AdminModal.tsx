@@ -2,18 +2,17 @@
 
 import { useState } from 'react';
 import { useUIStore } from '@/lib/store/uiStore';
-import { useAuthStore, UserRole, User } from '@/lib/store/authStore';
+import { useAuthStore } from '@/lib/store/authStore';
 
 export default function AdminModal() {
   const { adminModalOpen, closeAdminModal } = useUIStore();
-  const { users, currentUser, addUser, updateUserRole, deleteUser } = useAuthStore();
+  const { users, currentUser, addUser, deleteUser } = useAuthStore();
 
   const [activeTab, setActiveTab] = useState<'users' | 'add'>('users');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    role: 'user' as UserRole,
   });
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -26,24 +25,15 @@ export default function AdminModal() {
       return;
     }
 
-    const success = addUser(formData.email, formData.name, formData.password, formData.role);
+    // 집행위원은 관리자 권한 없이 등록만 허용
+    const success = addUser(formData.email, formData.name, formData.password, 'user');
 
     if (success) {
-      setMessage({ type: 'success', text: `${formData.name} 사용자가 추가되었습니다.` });
-      setFormData({ name: '', email: '', password: '', role: 'user' });
+      setMessage({ type: 'success', text: `${formData.name} 집행위원이 추가되었습니다.` });
+      setFormData({ name: '', email: '', password: '' });
       setActiveTab('users');
     } else {
-      setMessage({ type: 'error', text: '사용자 추가에 실패했습니다. 이메일을 확인해주세요.' });
-    }
-  };
-
-  const handleRoleChange = (userId: string, newRole: UserRole) => {
-    const user = users.find((u) => u.id === userId);
-    if (!user) return;
-
-    const success = updateUserRole(userId, newRole);
-    if (success) {
-      setMessage({ type: 'success', text: `${user.name}의 권한이 변경되었습니다.` });
+      setMessage({ type: 'error', text: '집행위원 추가에 실패했습니다. 이메일을 확인해주세요.' });
     }
   };
 
@@ -90,7 +80,7 @@ export default function AdminModal() {
                 </svg>
               </button>
             </div>
-            <p className="text-sm text-ui-variant">사용자 계정을 관리하고 권한을 설정합니다</p>
+            <p className="text-sm text-ui-variant">집행위원 계정을 등록하고 관리합니다. 관리자(간사)만 등록 가능합니다.</p>
           </div>
 
           {/* 탭 */}
@@ -103,7 +93,7 @@ export default function AdminModal() {
                   : 'text-ui-variant hover:text-ui-on-surface'
               }`}
             >
-              사용자 관리 ({users.length})
+              집행위원 관리 ({users.length})
             </button>
             <button
               onClick={() => setActiveTab('add')}
@@ -113,7 +103,7 @@ export default function AdminModal() {
                   : 'text-ui-variant hover:text-ui-on-surface'
               }`}
             >
-              사용자 추가
+              집행위원 추가
             </button>
           </div>
 
@@ -164,7 +154,7 @@ export default function AdminModal() {
                               : 'bg-ui-low text-ui-on-surface'
                           }`}
                         >
-                          {user.role === 'admin' ? '관리자' : '사용자'}
+                          {user.role === 'admin' ? '관리자·간사' : '집행위원'}
                         </span>
                         {user.id === currentUser?.id && (
                           <span className="text-xs px-2 py-0.5 rounded bg-brand-container/50 text-brand-primary font-semibold">
@@ -175,18 +165,9 @@ export default function AdminModal() {
                       <p className="text-xs text-ui-variant">{user.email}</p>
                     </div>
 
-                    {/* 액션 버튼 */}
-                    {user.id !== currentUser?.id && (
+                    {/* 액션 버튼: 관리자(간사) 계정은 삭제 불가 */}
+                    {user.id !== currentUser?.id && user.role !== 'admin' && (
                       <div className="flex items-center gap-2 ml-4">
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleRoleChange(user.id, user.role === 'admin' ? 'user' : 'admin')}
-                            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-ui-on-surface hover:bg-ui-low transition-colors bg-ui-low"
-                            title={`${user.role === 'admin' ? '사용자로' : '관리자로'} 변경`}
-                          >
-                            {user.role === 'admin' ? '강등' : '승격'}
-                          </button>
-                        </div>
                         <button
                           onClick={() => handleDeleteUser(user.id)}
                           className="px-3 py-1.5 rounded-lg text-xs font-semibold text-[#ba1a1a] hover:bg-[#ba1a1a]/10 transition-colors"
@@ -233,23 +214,15 @@ export default function AdminModal() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-ui-on-surface mb-2">권한</label>
-                  <select
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
-                    className="w-full px-4 py-2.5 rounded-lg border border-ui-high/40 text-ui-on-surface focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                  >
-                    <option value="user">사용자</option>
-                    <option value="admin">관리자</option>
-                  </select>
+                <div className="p-3 rounded-lg bg-brand-container/20 text-xs text-ui-variant">
+                  신규 계정은 <strong className="text-brand-primary">집행위원 권한</strong>으로 등록됩니다. 관리자(간사)는 경영전략실장 1인으로 고정됩니다.
                 </div>
 
                 <button
                   type="submit"
                   className="w-full py-2.5 rounded-lg text-sm font-semibold bg-brand-primary text-white hover:bg-brand-dim transition-colors cursor-pointer"
                 >
-                  사용자 추가
+                  집행위원 추가
                 </button>
               </form>
             )}

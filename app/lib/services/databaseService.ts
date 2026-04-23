@@ -77,8 +77,11 @@ export async function createMeetingRound(round: Partial<MeetingRound>) {
     );
     
     return await getMeetingRoundById(id);
-  } catch (error) {
+  } catch (error: any) {
     console.error('createMeetingRound error:', error);
+    if (error?.code === 'ER_DUP_ENTRY') {
+      throw new Error(`DUPLICATE:${round.year}-${round.round}`);
+    }
     throw new Error('Failed to create meeting round');
   }
 }
@@ -98,6 +101,18 @@ export async function updateMeetingRound(id: string, updates: Partial<MeetingRou
   } catch (error) {
     console.error('updateMeetingRound error:', error);
     throw new Error('Failed to update meeting round');
+  }
+}
+
+export async function deleteMeetingRound(id: string) {
+  try {
+    await pool.query(`DELETE FROM agendas WHERE meeting_id = ?`, [id]);
+    await pool.query(`DELETE FROM ceo_reports WHERE round_id = ?`, [id]);
+    await pool.query(`DELETE FROM meeting_rounds WHERE id = ?`, [id]);
+    return true;
+  } catch (error) {
+    console.error('deleteMeetingRound error:', error);
+    throw new Error('Failed to delete meeting round');
   }
 }
 

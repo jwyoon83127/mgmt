@@ -129,16 +129,16 @@ export default function LoginPage() {
 
           {/* 데모 계정 안내 */}
           <div className="pt-4 border-t border-ui-high/40">
-            <p className="text-xs text-ui-variant mb-3 font-medium">📝 관리자 계정</p>
+            <p className="text-xs text-ui-variant mb-3 font-medium">📝 관리자(간사) 계정</p>
             <div className="space-y-2 text-xs text-ui-variant">
               <p>
-                <span className="font-semibold text-ui-on-surface">이메일:</span> abc@naver.com
+                <span className="font-semibold text-ui-on-surface">이메일:</span> seokjin@humuson.com
               </p>
               <p>
-                <span className="font-semibold text-ui-on-surface">비밀번호:</span> abc1234
+                <span className="font-semibold text-ui-on-surface">비밀번호:</span> humuson1234
               </p>
               <p className="text-ui-variant/70 mt-2">
-                관리자 계정으로 로그인하여 다른 사용자를 추가하고 권한을 관리할 수 있습니다.
+                관리자(경영전략실장) 계정으로 집행위원(전순창·원희용·차효석·김병호)을 등록/관리합니다.
               </p>
             </div>
           </div>

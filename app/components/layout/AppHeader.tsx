@@ -1,13 +1,12 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
-import { useUIStore } from '@/lib/store/uiStore';
 import { useAuthStore } from '@/lib/store/authStore';
 
 export default function AppHeader() {
   const router = useRouter();
-  const { openAgendaDrawer, openAdminModal } = useUIStore();
+  const pathname = usePathname();
   const { currentUser, logout, isAdmin } = useAuthStore();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -18,7 +17,6 @@ export default function AppHeader() {
         setDropdownOpen(false);
       }
     }
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
@@ -30,12 +28,19 @@ export default function AppHeader() {
 
   const userInitial = currentUser?.name.charAt(0) || 'U';
 
+  const navItems = [
+    { href: '/', label: '대시보드' },
+    { href: '/meetings', label: '회의 관리' },
+    ...(isAdmin() ? [{ href: '/admin/users', label: '계정 관리' }] : []),
+  ];
+
+  const isActive = (href: string) => href === '/' ? pathname === '/' : pathname.startsWith(href);
+
   return (
     <header className="glass-header no-print">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        {/* 로고 & 네비게이션 */}
         <div className="flex items-center gap-10">
-          <div 
+          <div
             className="flex items-center gap-2.5 cursor-pointer"
             onClick={() => router.push('/')}
           >
@@ -53,37 +58,27 @@ export default function AppHeader() {
           </div>
 
           <nav className="hidden md:flex items-center gap-1">
-            <button 
-              onClick={() => router.push('/')}
-              className="px-4 py-2 text-sm font-semibold text-ui-on-surface hover:bg-ui-low rounded-xl transition-colors"
-            >
-              대시보드
-            </button>
-            <button 
-              onClick={() => router.push('/meetings')}
-              className="px-4 py-2 text-sm font-semibold text-ui-on-surface hover:bg-ui-low rounded-xl transition-colors flex items-center gap-2"
-            >
-              회의 관리
-            </button>
+            {navItems.map(item => (
+              <button
+                key={item.href}
+                onClick={() => router.push(item.href)}
+                className={`px-4 py-2 text-sm font-semibold rounded-xl transition-colors cursor-pointer ${
+                  isActive(item.href)
+                    ? 'bg-brand-container/50 text-brand-primary'
+                    : 'text-ui-on-surface hover:bg-ui-low'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
           </nav>
         </div>
-        {/* 우측 액션 */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={openAgendaDrawer}
-            className="btn-primary"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            안건 등록
-          </button>
 
-          {/* 아바타 & 드롭다운 */}
+        <div className="flex items-center gap-3">
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-ui-low transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-ui-low transition-colors cursor-pointer"
             >
               <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
                 style={{ background: 'linear-gradient(135deg, #2a676c, #1b5b60)' }}>
@@ -92,7 +87,7 @@ export default function AppHeader() {
               <div className="text-left">
                 <p className="text-xs font-semibold text-ui-on-surface">{currentUser?.name}</p>
                 <p className="text-[10px] text-ui-variant">
-                  {isAdmin() ? '관리자' : '사용자'}
+                  {isAdmin() ? '관리자·간사' : '집행위원'}
                 </p>
               </div>
               <svg className={`w-4 h-4 text-ui-variant transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
@@ -101,9 +96,8 @@ export default function AppHeader() {
               </svg>
             </button>
 
-            {/* 드롭다운 메뉴 */}
             {dropdownOpen && (
-              <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-ui-high/40 overflow-hidden z-50">
+              <div className="absolute right-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-ui-high/40 overflow-hidden z-50">
                 <div className="px-4 py-3 border-b border-ui-high/40">
                   <p className="text-xs text-ui-variant">로그인 계정</p>
                   <p className="text-sm font-semibold text-ui-on-surface">{currentUser?.email}</p>
@@ -111,27 +105,19 @@ export default function AppHeader() {
 
                 {isAdmin() && (
                   <button
-                    onClick={() => {
-                      openAdminModal();
-                      setDropdownOpen(false);
-                    }}
-                    className="w-full text-left px-4 py-3 text-sm font-medium text-ui-on-surface hover:bg-ui-low transition-colors flex items-center gap-2 border-b border-ui-high/40"
+                    onClick={() => { router.push('/admin/users'); setDropdownOpen(false); }}
+                    className="w-full text-left px-4 py-3 text-sm font-medium text-ui-on-surface hover:bg-ui-low transition-colors flex items-center gap-2 border-b border-ui-high/40 cursor-pointer"
                   >
                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="18" cy="18" r="3"></circle>
-                      <circle cx="6" cy="6" r="3"></circle>
-                      <path d="M13 6h6M5 18h6M9 9l6 6"></path>
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
                     </svg>
-                    관리자 패널
+                    계정 관리
                   </button>
                 )}
 
                 <button
-                  onClick={() => {
-                    handleLogout();
-                    setDropdownOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-3 text-sm font-medium text-[#ba1a1a] hover:bg-[#ba1a1a]/5 transition-colors flex items-center gap-2"
+                  onClick={() => { handleLogout(); setDropdownOpen(false); }}
+                  className="w-full text-left px-4 py-3 text-sm font-medium text-[#ba1a1a] hover:bg-[#ba1a1a]/5 transition-colors flex items-center gap-2 cursor-pointer"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 3l3 3m0 0l-3 3m3-3H9m7 11v-4"></path>
@@ -144,5 +130,5 @@ export default function AppHeader() {
         </div>
       </div>
     </header>
-    );
-  }
+  );
+}

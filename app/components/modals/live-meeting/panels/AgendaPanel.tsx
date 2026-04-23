@@ -17,6 +17,7 @@ export default function AgendaPanel({ agenda, agendaIndex, isLast }: AgendaPanel
   const [commentOpen, setCommentOpen] = useState(false);
   const [speechError, setSpeechError] = useState('');
   const [waveHeights, setWaveHeights] = useState<number[]>([]);
+  const [attachmentOpen, setAttachmentOpen] = useState(false);
   const animFrameRef = useRef<number | null>(null);
   const currentVote = votes[agendaIndex];
   const currentTranscript = transcripts[agendaIndex] || '';
@@ -118,15 +119,68 @@ export default function AgendaPanel({ agenda, agendaIndex, isLast }: AgendaPanel
 
         {/* 첨부 파일 뷰어 영역 */}
         <div className="rounded-2xl border overflow-hidden mb-6" style={{ background: '#f5f7f9', borderColor: '#e0e4e8' }}>
-          <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: '#e0e4e8' }}>
-            <svg className="w-4 h-4 text-[#ff6b6b]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-            </svg>
-            <span className="text-xs text-ui-on-surface font-medium">{agenda.attachmentName}</span>
-          </div>
+          <button
+            type="button"
+            onClick={() => setAttachmentOpen(true)}
+            className="w-full flex items-center justify-between gap-2 px-4 py-3 border-b hover:bg-ui-low transition-colors cursor-pointer text-left"
+            style={{ borderColor: '#e0e4e8' }}
+            title="첨부 자료 미리보기 열기"
+          >
+            <span className="flex items-center gap-2 min-w-0">
+              <svg className="w-4 h-4 text-[#ff6b6b] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              <span className="text-xs text-ui-on-surface font-medium truncate">{agenda.attachmentName}</span>
+            </span>
+            <span className="text-[11px] text-brand-primary font-semibold shrink-0 flex items-center gap-1">
+              자료 열기
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M7 17L17 7M7 7h10v10" />
+              </svg>
+            </span>
+          </button>
           <div className="px-6 py-5 text-ui-on-surface" dangerouslySetInnerHTML={{ __html: agenda.content }} />
         </div>
+
+        {attachmentOpen && (
+          <>
+            <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm" onClick={() => setAttachmentOpen(false)} />
+            <div className="fixed inset-0 z-[61] flex items-center justify-center p-4 pointer-events-none">
+              <div className="w-full max-w-3xl max-h-[85vh] bg-white rounded-3xl shadow-2xl pointer-events-auto flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between px-6 py-4 border-b border-ui-high/40 shrink-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <svg className="w-5 h-5 text-[#ff6b6b] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                    <h3 className="text-sm font-bold text-ui-on-surface truncate">{agenda.attachmentName}</h3>
+                  </div>
+                  <button
+                    onClick={() => setAttachmentOpen(false)}
+                    className="text-ui-variant hover:text-ui-on-surface transition-colors cursor-pointer"
+                    aria-label="닫기"
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto px-8 py-6 bg-ui-surface">
+                  <div className="bg-white rounded-2xl p-8 shadow-sm border border-ui-high/40 text-ui-on-surface" dangerouslySetInnerHTML={{ __html: agenda.content }} />
+                </div>
+                <div className="px-6 py-3 border-t border-ui-high/40 shrink-0 flex justify-end">
+                  <button
+                    onClick={() => setAttachmentOpen(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-ui-low text-ui-on-surface hover:bg-ui-high transition-colors cursor-pointer"
+                  >
+                    닫기
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* 음성 녹음 컨트롤 */}
         <div className="rounded-2xl border overflow-hidden mb-4" style={{ background: isListening ? '#f0faf7' : '#f5f7f9', borderColor: isListening ? '#2a676c40' : '#e0e4e8' }}>

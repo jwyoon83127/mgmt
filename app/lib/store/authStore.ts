@@ -28,15 +28,23 @@ export interface AuthState {
   initializeUsers: () => void;
 }
 
-// 초기 관리자 계정
+// 초기 관리자 계정 (경영전략실장 이석진 - 관리자 겸 간사)
 const INITIAL_ADMIN: User = {
   id: 'admin-001',
-  email: 'abc@naver.com',
-  name: '시스템 관리자',
-  password: 'abc1234',
+  email: 'seokjin@humuson.com',
+  name: '이석진',
+  password: 'humuson1234',
   role: 'admin',
   createdAt: new Date(),
 };
+
+// 초기 집행위원 (관리자가 사전 등록한 이용 가능 계정)
+const INITIAL_EXECUTIVES: User[] = [
+  { id: 'exec-001', email: 'junchang@humuson.com', name: '전순창 이사', password: 'humuson1234', role: 'user', createdAt: new Date() },
+  { id: 'exec-002', email: 'heeyong@humuson.com', name: '원희용 이사', password: 'humuson1234', role: 'user', createdAt: new Date() },
+  { id: 'exec-003', email: 'hyoseok@humuson.com', name: '차효석 리더', password: 'humuson1234', role: 'user', createdAt: new Date() },
+  { id: 'exec-004', email: 'byungho@humuson.com', name: '김병호 리더', password: 'humuson1234', role: 'user', createdAt: new Date() },
+];
 
 const STORAGE_KEY = 'auth_users';
 const CURRENT_USER_KEY = 'current_user';
@@ -48,11 +56,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initializeUsers: () => {
     // localStorage에서 사용자 목록 로드
     const stored = localStorage.getItem(STORAGE_KEY);
-    const users = stored ? JSON.parse(stored) : [INITIAL_ADMIN];
+    let users: User[] = stored ? JSON.parse(stored) : [INITIAL_ADMIN, ...INITIAL_EXECUTIVES];
 
-    // 관리자가 없으면 추가
-    if (!users.some((u: User) => u.role === 'admin')) {
-      users.push(INITIAL_ADMIN);
+    // 관리자(이석진)가 없으면 추가
+    if (!users.some((u: User) => u.email === INITIAL_ADMIN.email)) {
+      users = [INITIAL_ADMIN, ...users];
+    }
+    // 집행위원 누락분 보충
+    for (const exec of INITIAL_EXECUTIVES) {
+      if (!users.some((u: User) => u.email === exec.email)) {
+        users.push(exec);
+      }
     }
 
     set({ users });

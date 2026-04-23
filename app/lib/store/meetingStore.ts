@@ -13,6 +13,7 @@ interface MeetingStoreState {
   fetchRounds: () => Promise<void>;
   addRound: (round: MeetingRound) => Promise<void>;
   updateRound: (roundId: string, updates: Partial<MeetingRound>) => Promise<void>;
+  deleteRound: (roundId: string) => Promise<void>;
   getRound: (roundId: string) => MeetingRound | undefined;
 }
 
@@ -59,6 +60,16 @@ export const useMeetingStore = create<MeetingStoreState>((set, get) => ({
       set({ rounds });
     } catch (err: any) {
       console.error('회의 업데이트 실패:', err);
+      throw err;
+    }
+  },
+
+  deleteRound: async (roundId) => {
+    try {
+      await databaseService.deleteMeetingRound(roundId);
+      set(state => ({ rounds: state.rounds.filter(r => r.id !== roundId) }));
+    } catch (err: any) {
+      console.error('회의 삭제 실패:', err);
       throw err;
     }
   },
