@@ -1,31 +1,40 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('fs');
 const path = require('path');
-const mysql = require('mysql2/promise');
+const { Client } = require('pg');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env.local') });
 
-(async () => {
-  const sql = fs.readFileSync(path.join(__dirname, '..', 'lib', 'db', 'migrations', '001_auth_smtp_mail.sql'), 'utf8');
-  const conn = await mysql.createConnection({
-    host: process.env.DB_HOST,
-    port: Number(process.env.DB_PORT || 3306),
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    multipleStatements: true,
-  });
-  try {
-    console.log('Applying migration 001_auth_smtp_mail.sql...');
-    await conn.query(sql);
-    console.log('✓ migration applied');
+const migrationsDir = path.join(__dirname, '..', 'lib', 'db', 'migrations');
+const files = ['001_auth_smtp_mail.sql', '002_audit_logs.sql'];
 
-    const [t] = await conn.query("SHOW TABLES LIKE 'users'");
-    console.log('users table:', t);
-    const [s] = await conn.query("SHOW TABLES LIKE 'smtp_settings'");
-    console.log('smtp_settings table:', s);
-    const [m] = await conn.query("SHOW TABLES LIKE 'mail_send_logs'");
-    console.log('mail_send_logs table:', m);
+(async () => {
+  const client = new Client({
+    host: process.env.DB_HOST || '10.147.1.219',
+    port: Number(process.env.DB_PORT || 5432),
+    user: process.env.DB_USER || 'devuser',
+    password: process.env.DB_PASSWORD || 'devpass123!',
+    database: process.env.DB_NAME || 'devdb',
+  });
+
+  await client.connect();
+  console.log('Connected to PostgreSQL');
+
+  try {
+    for (const file of files) {
+      const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+      console.log(`Applying ${file}...`);
+      await client.query(sql);
+      console.log(`✓ ${file} applied`);
+    }
+
+    const { rows } = await client.query(`
+      SELECT table_name FROM information_schema.tables
+      WHERE table_schema = 'public'
+      ORDER BY table_name
+    `);
+    console.log('\nTables created:');
+    rows.forEach(r => console.log(' -', r.table_name));
   } finally {
-    await conn.end();
+    await client.end();
   }
 })().catch(e => { console.error(e); process.exit(1); });
