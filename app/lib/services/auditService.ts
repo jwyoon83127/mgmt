@@ -1,6 +1,5 @@
 import 'server-only';
 import pool from '../db';
-import type { RowDataPacket } from 'mysql2';
 
 export type AuditAction =
   | 'login_success' | 'login_failed' | 'logout'
@@ -20,7 +19,7 @@ export async function writeAudit(entry: {
   try {
     await pool.query(
       `INSERT INTO audit_logs (id, actor_id, actor_email, action, target_id, target_label, details)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [
         id,
         entry.actorId ?? null,
@@ -44,7 +43,7 @@ export async function logPasswordReset(entry: {
   const id = `pwreset-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   try {
     await pool.query(
-      `INSERT INTO password_reset_logs (id, user_id, reset_by, reset_method) VALUES (?, ?, ?, ?)`,
+      `INSERT INTO password_reset_logs (id, user_id, reset_by, reset_method) VALUES ($1, $2, $3, $4)`,
       [id, entry.userId, entry.resetBy ?? null, entry.method]
     );
   } catch (e) {
@@ -63,20 +62,20 @@ export type AuditRow = {
   occurredAt: string;
 };
 
-type RawAudit = RowDataPacket & {
+type RawAudit = {
   id: string;
   actor_id: string | null;
   actor_email: string | null;
   action: AuditAction;
   target_id: string | null;
   target_label: string | null;
-  details: string | null;
+  details: Record<string, unknown> | null;
   occurred_at: Date;
 };
 
 export async function listRecentAudits(limit = 100): Promise<AuditRow[]> {
-  const [rows] = await pool.query<RawAudit[]>(
-    'SELECT * FROM audit_logs ORDER BY occurred_at DESC LIMIT ?',
+  const { rows } = await pool.query<RawAudit>(
+    'SELECT * FROM audit_logs ORDER BY occurred_at DESC LIMIT $1',
     [limit]
   );
   return rows.map(r => ({
@@ -86,7 +85,7 @@ export async function listRecentAudits(limit = 100): Promise<AuditRow[]> {
     action: r.action,
     targetId: r.target_id,
     targetLabel: r.target_label,
-    details: r.details ? (() => { try { return JSON.parse(r.details!) as Record<string, unknown>; } catch { return null; } })() : null,
+    details: r.details ?? null,
     occurredAt: r.occurred_at instanceof Date ? r.occurred_at.toISOString() : String(r.occurred_at),
   }));
 }

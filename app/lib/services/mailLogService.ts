@@ -1,6 +1,5 @@
 import 'server-only';
 import pool from '../db';
-import type { RowDataPacket } from 'mysql2';
 
 export type MailType = 'credential' | 'password_reset' | 'test' | 'other';
 export type MailLogStatus = 'sent' | 'failed';
@@ -18,7 +17,7 @@ export async function logMail(entry: {
   try {
     await pool.query(
       `INSERT INTO mail_send_logs (id, to_address, subject, mail_type, status, message_id, error_message, user_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [id, entry.to, entry.subject, entry.mailType, entry.status, entry.messageId ?? null, entry.error ?? null, entry.userId ?? null]
     );
   } catch (e) {
@@ -38,7 +37,7 @@ export type MailLog = {
   userId: string | null;
 };
 
-type MailRow = RowDataPacket & {
+type MailRow = {
   id: string;
   to_address: string;
   subject: string | null;
@@ -51,8 +50,8 @@ type MailRow = RowDataPacket & {
 };
 
 export async function listRecentMailLogs(limit = 50): Promise<MailLog[]> {
-  const [rows] = await pool.query<MailRow[]>(
-    'SELECT * FROM mail_send_logs ORDER BY sent_at DESC LIMIT ?',
+  const { rows } = await pool.query<MailRow>(
+    'SELECT * FROM mail_send_logs ORDER BY sent_at DESC LIMIT $1',
     [limit]
   );
   return rows.map(r => ({

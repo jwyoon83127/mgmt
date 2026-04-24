@@ -1,6 +1,5 @@
 import 'server-only';
 import pool from '../db';
-import type { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { encryptSecret, decryptSecret } from './crypto';
 
 export type SmtpConfig = {
@@ -12,11 +11,11 @@ export type SmtpConfig = {
   from: string;
 };
 
-type SmtpRow = RowDataPacket & {
+type SmtpRow = {
   id: number;
   host: string;
   port: number;
-  secure: number;
+  secure: boolean;
   smtp_user: string;
   password_encrypted: Buffer;
   from_address: string | null;
@@ -25,7 +24,7 @@ type SmtpRow = RowDataPacket & {
 
 export async function readSmtpConfig(): Promise<SmtpConfig | null> {
   try {
-    const [rows] = await pool.query<SmtpRow[]>(
+    const { rows } = await pool.query<SmtpRow>(
       "SELECT id, host, port, secure, smtp_user, password_encrypted, from_address, status FROM smtp_settings WHERE status = 'active' ORDER BY updated_at DESC LIMIT 1"
     );
     const row = rows[0];
@@ -46,12 +45,11 @@ export async function readSmtpConfig(): Promise<SmtpConfig | null> {
 
 export async function writeSmtpConfig(cfg: SmtpConfig, updatedBy?: string): Promise<void> {
   const encrypted = encryptSecret(cfg.pass);
-  // 단일 활성 레코드 정책: 기존 active를 inactive 처리 후 새 레코드 삽입
   await pool.query("UPDATE smtp_settings SET status = 'inactive' WHERE status = 'active'");
-  await pool.query<ResultSetHeader>(
+  await pool.query(
     `INSERT INTO smtp_settings (host, port, secure, smtp_user, password_encrypted, from_address, status, tested_at, updated_by)
-     VALUES (?, ?, ?, ?, ?, ?, 'active', NULL, ?)`,
-    [cfg.host, cfg.port, cfg.secure ? 1 : 0, cfg.user, encrypted, cfg.from || cfg.user, updatedBy ?? null]
+     VALUES ($1, $2, $3, $4, $5, $6, 'active', NULL, $7)`,
+    [cfg.host, cfg.port, cfg.secure, cfg.user, encrypted, cfg.from || cfg.user, updatedBy ?? null]
   );
 }
 
