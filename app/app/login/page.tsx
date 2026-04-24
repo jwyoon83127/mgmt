@@ -10,6 +10,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -19,7 +20,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const success = login(email, password);
+      const success = await login(email, password);
 
       if (success) {
         router.push('/');
@@ -55,7 +56,7 @@ export default function LoginPage() {
         </div>
 
         {/* 로그인 폼 */}
-        <form onSubmit={handleLogin} className="bg-white rounded-3xl shadow-2xl p-8 space-y-6">
+        <form onSubmit={handleLogin} autoComplete="off" className="bg-white rounded-3xl shadow-2xl p-8 space-y-6">
           <div>
             <h2 className="text-2xl font-bold font-display text-ui-on-surface mb-1">로그인</h2>
             <p className="text-sm text-ui-variant">계정으로 로그인하세요</p>
@@ -71,17 +72,18 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* 이메일 입력 */}
+          {/* 아이디 입력 */}
           <div>
             <label htmlFor="email" className="block text-sm font-semibold text-ui-on-surface mb-2">
-              이메일 주소
+              아이디
             </label>
             <input
               id="email"
-              type="email"
+              type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
+              placeholder="admin"
+              autoComplete="off"
               className="w-full px-4 py-3 rounded-xl border border-ui-high/40 text-ui-on-surface placeholder-ui-variant focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent transition-all"
               required
             />
@@ -92,15 +94,38 @@ export default function LoginPage() {
             <label htmlFor="password" className="block text-sm font-semibold text-ui-on-surface mb-2">
               비밀번호
             </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full px-4 py-3 rounded-xl border border-ui-high/40 text-ui-on-surface placeholder-ui-variant focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent transition-all"
-              required
-            />
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="new-password"
+                className="w-full px-4 py-3 pr-12 rounded-xl border border-ui-high/40 text-ui-on-surface placeholder-ui-variant focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent transition-all"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-ui-variant hover:text-ui-on-surface transition-colors cursor-pointer"
+                tabIndex={-1}
+                aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
+              >
+                {showPassword ? (
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                    <line x1="1" y1="1" x2="23" y2="23" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* 로그인 버튼 */}
@@ -127,19 +152,12 @@ export default function LoginPage() {
             )}
           </button>
 
-          {/* 데모 계정 안내 */}
+          {/* 계정 안내 */}
           <div className="pt-4 border-t border-ui-high/40">
-            <p className="text-xs text-ui-variant mb-3 font-medium">📝 관리자(간사) 계정</p>
+            <p className="text-xs text-ui-variant mb-3 font-medium">📝 관리자 계정</p>
             <div className="space-y-2 text-xs text-ui-variant">
-              <p>
-                <span className="font-semibold text-ui-on-surface">이메일:</span> seokjin@humuson.com
-              </p>
-              <p>
-                <span className="font-semibold text-ui-on-surface">비밀번호:</span> humuson1234
-              </p>
-              <p className="text-ui-variant/70 mt-2">
-                관리자(경영전략실장) 계정으로 집행위원(전순창·원희용·차효석·김병호)을 등록/관리합니다.
-              </p>
+              <p><span className="font-semibold text-ui-on-surface">아이디:</span> admin</p>
+              <p><span className="font-semibold text-ui-on-surface">비밀번호:</span> 1234</p>
             </div>
           </div>
         </form>

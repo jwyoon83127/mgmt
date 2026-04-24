@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useAuthStore, restoreAuthState } from '@/lib/store/authStore';
+import { useAuthStore } from '@/lib/store/authStore';
 
 export default function AuthProvider({
   children,
@@ -11,18 +11,15 @@ export default function AuthProvider({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { currentUser, initializeUsers } = useAuthStore();
+  const { currentUser, initialize } = useAuthStore();
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    // 사용자 목록 초기화
-    initializeUsers();
-
-    // 저장된 로그인 정보 복원
-    restoreAuthState();
-
-    setIsInitialized(true);
-  }, [initializeUsers]);
+    (async () => {
+      await initialize();
+      setIsInitialized(true);
+    })();
+  }, [initialize]);
 
   useEffect(() => {
     if (!isInitialized) return;

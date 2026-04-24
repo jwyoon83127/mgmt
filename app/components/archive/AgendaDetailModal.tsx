@@ -1,5 +1,6 @@
 'use client';
 
+import { createPortal } from 'react-dom';
 import { ArchiveRow } from '@/lib/types/meeting';
 import { VoteBadge, FollowUpBadge } from './StatusBadge';
 
@@ -25,7 +26,7 @@ const followUpLabel: Record<string, string> = {
 export default function AgendaDetailModal({ row, onClose }: Props) {
   if (!row) return null;
 
-  return (
+  return createPortal(
     <>
       <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
@@ -92,6 +93,7 @@ export default function AgendaDetailModal({ row, onClose }: Props) {
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }

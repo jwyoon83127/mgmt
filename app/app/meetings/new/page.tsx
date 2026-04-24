@@ -288,7 +288,7 @@ export default function NewMeetingPage() {
                   <p className="text-xs text-ui-variant">총 {agendas.length}건 · 입력 완료 {validAgendas.length}건</p>
                   <button
                     onClick={addAgenda}
-                    className="text-xs font-semibold text-brand-primary hover:text-brand-dim cursor-pointer flex items-center gap-1"
+                    className="btn-primary text-xs"
                   >
                     <Plus size={14} weight="bold" /> 안건 추가
                   </button>
@@ -373,14 +373,24 @@ export default function NewMeetingPage() {
                     <ArrowLeft size={16} weight="bold" />
                     이전
                   </button>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={submitting || validAgendas.length === 0}
-                    className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <Check size={16} weight="bold" />
-                    {submitting ? '생성 중...' : `회의 생성 (${validAgendas.length}개 안건)`}
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={addAgenda}
+                      disabled={submitting}
+                      className="btn-primary"
+                    >
+                      <Plus size={14} weight="bold" /> 안건 추가
+                    </button>
+                    <button
+                      onClick={handleSubmit}
+                      disabled={submitting || validAgendas.length === 0}
+                      className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Check size={16} weight="bold" />
+                      {submitting ? '생성 중...' : `회의 생성 (${validAgendas.length}개 안건)`}
+                    </button>
+                  </div>
                 </div>
               </>
             )}

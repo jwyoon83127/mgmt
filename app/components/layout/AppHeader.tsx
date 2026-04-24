@@ -31,7 +31,10 @@ export default function AppHeader() {
   const navItems = [
     { href: '/', label: '대시보드' },
     { href: '/meetings', label: '회의 관리' },
-    ...(isAdmin() ? [{ href: '/admin/users', label: '계정 관리' }] : []),
+    ...(isAdmin() ? [
+      { href: '/admin/users', label: '계정 관리' },
+      { href: '/admin/logs', label: '감사 로그' },
+    ] : []),
   ];
 
   const isActive = (href: string) => href === '/' ? pathname === '/' : pathname.startsWith(href);

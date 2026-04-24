@@ -55,8 +55,7 @@ export default function AgendaTable({ rows }: AgendaTableProps) {
       </div>
 
       {/* 테이블 헤더 */}
-      <div className="grid grid-cols-[60px_1fr_120px_110px_100px_60px] px-6 py-2 text-xs font-semibold text-ui-variant uppercase tracking-wide">
-        <span>회차</span>
+      <div className="grid grid-cols-[1fr_120px_110px_100px_60px] px-6 py-2 text-xs font-semibold text-ui-variant uppercase tracking-wide border-b border-ui-high/30">
         <span>안건</span>
         <span>승인여부</span>
         <span>이행기한</span>
@@ -64,47 +63,62 @@ export default function AgendaTable({ rows }: AgendaTableProps) {
         <span className="text-right">공유</span>
       </div>
 
-      {/* 로우 */}
-      <div className="divide-y divide-transparent">
+      {/* 로우 (회차별 그룹) */}
+      <div>
         {filtered.length === 0 ? (
           <p className="px-6 py-8 text-sm text-ui-variant text-center">검색 결과가 없습니다.</p>
-        ) : (
-          filtered.map((row) => (
-            <div key={row.id} className="grid grid-cols-[60px_1fr_120px_110px_100px_60px] px-6 py-3.5 items-center hover:bg-ui-low transition-colors duration-150">
-              <span className="text-sm font-semibold text-ui-variant">{row.round}회</span>
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setDetailRow(row)}
-                  className="text-left text-sm font-medium text-ui-on-surface leading-snug hover:text-brand-primary hover:underline underline-offset-2 cursor-pointer"
-                  title="안건 상세 보기"
-                >
-                  {row.agendaTitle}
-                </button>
-                <p className="text-xs text-ui-variant mt-0.5">{row.submittedAt} 상정</p>
+        ) : (() => {
+          const groups = Array.from(
+            filtered.reduce((map, row) => {
+              const key = row.round;
+              if (!map.has(key)) map.set(key, []);
+              map.get(key)!.push(row);
+              return map;
+            }, new Map<number, typeof filtered>())
+          ).sort((a, b) => b[0] - a[0]);
+
+          return groups.map(([round, groupRows]) => (
+            <div key={round}>
+              <div className="px-6 py-2 bg-ui-low/60 border-y border-ui-high/30">
+                <span className="text-xs font-bold text-brand-primary uppercase tracking-wider">{round}회차</span>
               </div>
-              <span><VoteBadge result={row.voteResult} /></span>
-              <span className="text-sm text-ui-variant">{row.followUpDeadline}</span>
-              <span><FollowUpBadge status={row.followUpStatus} /></span>
-              <span className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); handleShare(row); }}
-                  className="p-1.5 rounded-lg text-ui-variant hover:text-brand-primary hover:bg-brand-container/30 transition-colors cursor-pointer"
-                  title="안건 공유 (링크 복사)"
-                  aria-label="안건 공유"
-                >
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="18" cy="5" r="3" />
-                    <circle cx="6" cy="12" r="3" />
-                    <circle cx="18" cy="19" r="3" />
-                    <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
-                  </svg>
-                </button>
-              </span>
+              {groupRows.map((row) => (
+                <div key={row.id} className="grid grid-cols-[1fr_120px_110px_100px_60px] px-6 py-3.5 items-center hover:bg-ui-low transition-colors duration-150 border-b border-ui-high/20 last:border-b-0">
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setDetailRow(row)}
+                      className="text-left text-sm font-medium text-ui-on-surface leading-snug hover:text-brand-primary hover:underline underline-offset-2 cursor-pointer"
+                      title="안건 상세 보기"
+                    >
+                      {row.agendaTitle}
+                    </button>
+                    <p className="text-xs text-ui-variant mt-0.5">{row.submittedAt} 상정</p>
+                  </div>
+                  <span><VoteBadge result={row.voteResult} /></span>
+                  <span className="text-sm text-ui-variant">{row.followUpDeadline}</span>
+                  <span><FollowUpBadge status={row.followUpStatus} /></span>
+                  <span className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleShare(row); }}
+                      className="p-1.5 rounded-lg text-ui-variant hover:text-brand-primary hover:bg-brand-container/30 transition-colors cursor-pointer"
+                      title="안건 공유 (링크 복사)"
+                      aria-label="안건 공유"
+                    >
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="18" cy="5" r="3" />
+                        <circle cx="6" cy="12" r="3" />
+                        <circle cx="18" cy="19" r="3" />
+                        <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
+                      </svg>
+                    </button>
+                  </span>
+                </div>
+              ))}
             </div>
-          ))
-        )}
+          ));
+        })()}
       </div>
 
       {shareToast && (

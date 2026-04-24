@@ -3,13 +3,15 @@
 import { useState } from 'react';
 import { useLiveMeetingStore } from '@/lib/store/liveMeetingStore';
 import { useUIStore } from '@/lib/store/uiStore';
+import { useMeetingStore } from '@/lib/store/meetingStore';
 import SummaryCard from '../voting/SummaryCard';
 import { formatElapsedTime } from '@/lib/utils/meetingRound';
 import { saveCompletedMeeting } from '@/lib/utils/meetingSaver';
 
 export default function ClosingPanel() {
-  const { agendas, votes, transcripts, elapsedSeconds, resetMeeting, meetingRound } = useLiveMeetingStore();
+  const { agendas, votes, transcripts, elapsedSeconds, resetMeeting, meetingRound, roundId } = useLiveMeetingStore();
   const { closeLiveMeeting } = useUIStore();
+  const { updateRound, fetchRounds } = useMeetingStore();
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState(false);
   const [aiSummary, setAiSummary] = useState('');
@@ -82,12 +84,37 @@ export default function ClosingPanel() {
     }
   };
 
-  const handleClose = () => {
-    // Save completed meeting before closing
+  const handleClose = async () => {
     try {
       saveCompletedMeeting(meetingRound, agendas, votes, elapsedSeconds, undefined, transcripts, aiSummary);
     } catch (error) {
       console.error('Failed to save completed meeting:', error);
+    }
+
+    // Persist to DB so the stage advances to 보고서 출력
+    if (roundId) {
+      const totalSec = elapsedSeconds;
+      const h = Math.floor(totalSec / 3600).toString().padStart(2, '0');
+      const m = Math.floor((totalSec % 3600) / 60).toString().padStart(2, '0');
+      const s = (totalSec % 60).toString().padStart(2, '0');
+      const duration = `${h}:${m}:${s}`;
+
+      try {
+        await updateRound(roundId, {
+          duration,
+          agendas: agendas.map(a => ({
+            index: a.index,
+            title: a.title,
+            voteResult: votes[a.index]?.type ?? 'approved',
+            voteComment: votes[a.index]?.comment ?? '',
+            transcript: transcripts[a.index] ?? '',
+          })),
+          aiSummary: aiSummary || undefined,
+        } as any);
+        await fetchRounds();
+      } catch (err) {
+        console.error('DB 저장 실패:', err);
+      }
     }
 
     closeLiveMeeting();

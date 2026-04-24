@@ -2,16 +2,16 @@
 
 import { MeetingRound } from '@/lib/types/meeting';
 import { useState, useRef } from 'react';
-import { generatePdfReport } from '@/lib/utils/pdfGenerator';
-import { generateCeoReport, downloadCeoReportPdf } from '@/lib/utils/ceoReportGenerator';
+import { generateCeoReport } from '@/lib/utils/ceoReportGenerator';
 
 interface ReportPanelProps {
   round: MeetingRound | null;
+  onClose?: () => void;
 }
 
 type TabType = 'minutes' | 'ceoReport';
 
-export default function ReportPanel({ round }: ReportPanelProps) {
+export default function ReportPanel({ round, onClose }: ReportPanelProps) {
   const reportRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<TabType>('minutes');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -30,12 +30,28 @@ export default function ReportPanel({ round }: ReportPanelProps) {
     );
   }
 
-  const handleDownloadPdf = () => {
-    window.print();
-  };
-
-  const handleDownloadCeoReportPdf = () => {
-    window.print();
+  const handleDownloadPdf = async () => {
+    if (!reportRef.current || !round) return;
+    setIsGenerating(true);
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const jsPDF = (await import('jspdf')).default;
+      const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgH = (canvas.height * pageW) / canvas.width;
+      let y = 0;
+      while (y < imgH) {
+        if (y > 0) pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, -y, pageW, imgH);
+        y += pageH;
+      }
+      pdf.save(`경영집행위원회_${round.date}.pdf`);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const generateAndDisplayCeoReport = () => {
@@ -88,12 +104,12 @@ export default function ReportPanel({ round }: ReportPanelProps) {
                 : 'text-ui-variant hover:text-ui-on-surface'
             }`}
           >
-            CEO 보고서
+            회의록 보고서
           </button>
         </div>
 
         <h2 className="text-2xl font-bold font-display text-ui-on-surface mb-1">
-          {activeTab === 'minutes' ? '경영집행위원회 회의록' : 'CEO 보고서'}
+          {activeTab === 'minutes' ? '경영집행위원회 회의록' : '회의록 보고서'}
         </h2>
         <p className="text-sm text-ui-variant">
           {activeTab === 'minutes' ? '회의 기본정보 및 안건별 의결 현황' : '경영진 보고 요약 및 전략 분석'}
@@ -173,12 +189,12 @@ export default function ReportPanel({ round }: ReportPanelProps) {
               <h3 className="text-sm font-bold text-ui-on-surface mb-4">안건별 의결 결과</h3>
               <div className="space-y-3">
                 {round.agendas.map((agenda) => {
-                  const voteConfig = {
+                  const voteConfig: Record<string, { bg: string; text: string; label: string }> = {
                     approved: { bg: 'bg-[#9df197]', text: 'text-[#005c15]', label: '승인' },
                     conditional: { bg: 'bg-[#cfe6f2]', text: 'text-[#0a1e28]', label: '조건부승인' },
                     review: { bg: 'bg-[#ffdad6]', text: 'text-[#410002]', label: '재검토' },
                   };
-                  const config = voteConfig[agenda.voteResult];
+                  const config = voteConfig[agenda.voteResult ?? ''] ?? { bg: 'bg-ui-low', text: 'text-ui-variant', label: '대기' };
 
                   return (
                     <div key={agenda.index} className={`rounded-xl p-4 border ${config.bg} border-ui-high`}>
@@ -206,7 +222,7 @@ export default function ReportPanel({ round }: ReportPanelProps) {
           </>
         ) : (
           <>
-            {/* CEO 보고서 */}
+            {/* 회의록 보고서 */}
             {ceoReportData ? (
               <>
                 {/* 보고서 제목 */}
@@ -293,8 +309,16 @@ export default function ReportPanel({ round }: ReportPanelProps) {
 
       {/* 하단 버튼 */}
       <div className="px-8 py-6 border-t border-ui-high shrink-0 flex gap-3 no-print">
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="px-5 py-3 rounded-xl text-sm font-semibold cursor-pointer transition-all bg-ui-low text-ui-on-surface hover:bg-ui-high"
+          >
+            닫기
+          </button>
+        )}
         <button
-          onClick={() => window.print()}
+          onClick={handleDownloadPdf}
           disabled={isGenerating}
           className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold cursor-pointer disabled:cursor-default transition-all duration-200 bg-brand-primary text-white hover:bg-brand-dim disabled:opacity-50"
         >
@@ -310,7 +334,7 @@ export default function ReportPanel({ round }: ReportPanelProps) {
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
               </svg>
-              {activeTab === 'minutes' ? '회의록 PDF 다운로드' : 'CEO 보고서 PDF 다운로드'}
+              {activeTab === 'minutes' ? '회의록 PDF 다운로드' : '회의록 보고서 PDF 다운로드'}
             </>
           )}
         </button>

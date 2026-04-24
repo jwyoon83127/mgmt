@@ -1,20 +1,21 @@
 'use client';
 
 import { useUIStore } from '@/lib/store/uiStore';
-import { useLiveMeetingStore } from '@/lib/store/liveMeetingStore';
-import { mockLiveAgendas } from '@/lib/mock/meetings';
+import { useMeetingStore } from '@/lib/store/meetingStore';
 import WorkflowStepCard from './WorkflowStepCard';
 import MeetingRoundEditor from './MeetingRoundEditor';
 
 export default function WorkflowSection() {
   const { openAgendaDrawer, openPreviewModal, openMeetingStartModal, openReportModal } = useUIStore();
+  const { rounds } = useMeetingStore();
+  const activeRound = rounds.find(r => !r.duration || r.duration === '00:00:00') ?? rounds[0];
 
   return (
     <section className="max-w-7xl mx-auto px-6 py-10">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <MeetingRoundEditor />
-        <button onClick={openAgendaDrawer} className="btn-primary">
+        <button onClick={() => openAgendaDrawer(activeRound?.id)} className="btn-primary">
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M12 5v14M5 12h14" />
           </svg>
@@ -28,7 +29,7 @@ export default function WorkflowSection() {
           number={1}
           label="안건 업로드"
           description="안건을 등록하고 의결 문서를 업로드합니다."
-          onClick={openAgendaDrawer}
+          onClick={() => openAgendaDrawer(activeRound?.id)}
         />
 
         {/* 연결선 */}
@@ -52,7 +53,7 @@ export default function WorkflowSection() {
           label="본회의 진행"
           description="음성 기반 자동 요약 및 안건별 표결을 진행합니다."
           isActive
-          onClick={openMeetingStartModal}
+          onClick={() => openMeetingStartModal('')}
         />
 
         <div className="flex items-center text-ui-highest">

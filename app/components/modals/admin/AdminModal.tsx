@@ -16,7 +16,7 @@ export default function AdminModal() {
   });
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const handleAddUser = (e: React.FormEvent) => {
+  const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
 
@@ -26,23 +26,23 @@ export default function AdminModal() {
     }
 
     // 집행위원은 관리자 권한 없이 등록만 허용
-    const success = addUser(formData.email, formData.name, formData.password, 'user');
+    const res = await addUser(formData.email, formData.name, formData.password, 'user');
 
-    if (success) {
+    if (res.ok) {
       setMessage({ type: 'success', text: `${formData.name} 집행위원이 추가되었습니다.` });
       setFormData({ name: '', email: '', password: '' });
       setActiveTab('users');
     } else {
-      setMessage({ type: 'error', text: '집행위원 추가에 실패했습니다. 이메일을 확인해주세요.' });
+      setMessage({ type: 'error', text: res.error === 'duplicate' ? '이미 존재하는 이메일입니다.' : '집행위원 추가에 실패했습니다.' });
     }
   };
 
-  const handleDeleteUser = (userId: string) => {
+  const handleDeleteUser = async (userId: string) => {
     const user = users.find((u) => u.id === userId);
     if (!user) return;
 
     if (confirm(`${user.name} 사용자를 삭제하시겠습니까?`)) {
-      const success = deleteUser(userId);
+      const success = await deleteUser(userId);
       if (success) {
         setMessage({ type: 'success', text: `${user.name} 사용자가 삭제되었습니다.` });
       } else {

@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { LiveAgenda, VoteRecord, VoteType } from '@/lib/types/meeting';
 
 interface LiveMeetingState {
+  roundId: string;
   meetingRound: number;
   currentStep: number;      // 0 = 오프닝, 1..N = 안건, N+1 = 결과종합
   totalSteps: number;       // agendas.length + 2
@@ -14,7 +15,7 @@ interface LiveMeetingState {
   timerActive: boolean;
 
   // Actions
-  initMeeting: (agendas: LiveAgenda[], round: number) => void;
+  initMeeting: (agendas: LiveAgenda[], round: number, roundId: string) => void;
   nextStep: () => void;
   castVote: (agendaIndex: number, type: VoteType) => void;
   setVoteComment: (agendaIndex: number, comment: string) => void;
@@ -28,6 +29,7 @@ interface LiveMeetingState {
 }
 
 export const useLiveMeetingStore = create<LiveMeetingState>((set, get) => ({
+  roundId: '',
   meetingRound: 0,
   currentStep: 0,
   totalSteps: 0,
@@ -37,8 +39,9 @@ export const useLiveMeetingStore = create<LiveMeetingState>((set, get) => ({
   elapsedSeconds: 0,
   timerActive: false,
 
-  initMeeting: (agendas, round) =>
+  initMeeting: (agendas, round, roundId) =>
     set({
+      roundId,
       agendas,
       meetingRound: round,
       totalSteps: agendas.length + 2,
@@ -46,7 +49,7 @@ export const useLiveMeetingStore = create<LiveMeetingState>((set, get) => ({
       votes: {},
       transcripts: {},
       elapsedSeconds: 0,
-      timerActive: true,
+      timerActive: false,
     }),
 
   nextStep: () =>

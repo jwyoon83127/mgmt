@@ -83,9 +83,9 @@ export default function MeetingDetailPage() {
 
   const stageCTA = (stage: StageKey) => {
     switch (stage) {
-      case 'agenda': return { label: '안건 등록/수정', onClick: openAgendaDrawer };
-      case 'preview': return { label: '사전 검토 열기', onClick: openPreviewModal };
-      case 'live': return { label: '본회의 시작', onClick: openMeetingStartModal };
+      case 'agenda': return { label: '안건 등록/수정', onClick: () => openAgendaDrawer(round.id) };
+      case 'preview': return { label: '사전 검토 열기', onClick: () => openPreviewModal(round.id) };
+      case 'live': return { label: '본회의 시작', onClick: () => openMeetingStartModal(round.id) };
       case 'report': return { label: '보고서 확인', onClick: openReportModal };
     }
   };
@@ -179,8 +179,8 @@ export default function MeetingDetailPage() {
                           </p>
                           <p className="text-xs text-ui-variant mt-1">{s.description}</p>
                         </div>
-                        {isActive && isAdmin && (
-                          <button onClick={stageCTA(s.key).onClick} className="btn-secondary text-xs">
+                        {isAdmin && (isActive || isDone || s.key === 'live') && s.key !== 'agenda' && (
+                          <button onClick={stageCTA(s.key).onClick} className="btn-primary text-xs">
                             {stageCTA(s.key).label} →
                           </button>
                         )}
@@ -197,7 +197,7 @@ export default function MeetingDetailPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold text-ui-variant uppercase tracking-wider">등록된 안건 ({round.agendas.length}건)</h2>
               {isAdmin && (
-                <button onClick={openAgendaDrawer} className="btn-secondary text-xs">안건 추가/수정</button>
+                <button onClick={() => openAgendaDrawer(round.id)} className="btn-secondary text-xs">안건 추가/수정</button>
               )}
             </div>
             {round.agendas.length === 0 ? (

@@ -42,19 +42,23 @@ export default function LiveMeetingModal() {
       >
         {/* 좌측: 라이브 인디케이터 + 타이틀 */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[#ff4444] animate-pulse-dot" />
-            <span className="text-xs font-bold text-[#ff4444] tracking-widest">LIVE REC</span>
-          </div>
-          <div className="w-px h-4" style={{ background: '#d0d5dc' }} />
+          {timerActive && (
+            <>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#ff4444] animate-pulse-dot" />
+                <span className="text-xs font-bold text-[#ff4444] tracking-widest">LIVE REC</span>
+              </div>
+              <div className="w-px h-4" style={{ background: '#d0d5dc' }} />
+            </>
+          )}
           <p className="text-sm font-semibold text-ui-on-surface">
             2026-{String(meetingRound).padStart(2, '0')}회차 정기회의
           </p>
         </div>
 
-        {/* 중앙: 타이머 */}
+        {/* 중앙: 타이머 (회의 시작 후만 표시) */}
         <div className="font-display font-bold text-xl text-ui-on-surface tabular-nums">
-          {formatElapsedTime(elapsedSeconds)}
+          {timerActive ? formatElapsedTime(elapsedSeconds) : '대기 중'}
         </div>
 
         {/* 우측: 종료 */}
@@ -96,7 +100,10 @@ export default function LiveMeetingModal() {
             <div className="px-8 py-5 border-t shrink-0" style={{ background: '#f8f9fa', borderColor: '#e0e4e8' }}>
               <div className="flex justify-end">
                 <button
-                  onClick={() => useLiveMeetingStore.getState().nextStep()}
+                  onClick={() => {
+                    useLiveMeetingStore.getState().startTimer();
+                    useLiveMeetingStore.getState().nextStep();
+                  }}
                   className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-brand-primary text-white hover:bg-brand-dim transition-colors cursor-pointer"
                 >
                   회의 시작 →

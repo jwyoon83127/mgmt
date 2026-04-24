@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# runtime config (contains secrets)
+/.runtime/*.json
+
 # production
 /build
 

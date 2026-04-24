@@ -1,10 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MeetingRound } from '@/lib/types/meeting';
 import { useUIStore } from '@/lib/store/uiStore';
 import { useAuthStore } from '@/lib/store/authStore';
-import { Calendar, Clock, MapPin, Users, ArrowRight, CheckCircle, FileText, ChatCircle, Microphone, FileDoc } from '@phosphor-icons/react';
+import { useMeetingStore } from '@/lib/store/meetingStore';
+import { Calendar, Clock, MapPin, Users, ArrowRight, CheckCircle, FileText, ChatCircle, Microphone, FileDoc, PencilSimple, Check, X } from '@phosphor-icons/react';
 
 type StageKey = 'agenda' | 'preview' | 'live' | 'report';
 
@@ -28,15 +30,36 @@ export default function CurrentMeetingCard({ round }: { round: MeetingRound }) {
   const router = useRouter();
   const { openAgendaDrawer, openPreviewModal, openMeetingStartModal, openReportModal } = useUIStore();
   const isAdmin = useAuthStore(s => s.currentUser?.role === 'admin');
+  const { updateRound } = useMeetingStore();
+
+  const [editing, setEditing] = useState(false);
+  const [editDate, setEditDate] = useState(round.date);
+  const [editTime, setEditTime] = useState(round.time);
+  const [editLocation, setEditLocation] = useState(round.location);
 
   const stage = resolveStage(round);
   const stageOrder: StageKey[] = ['agenda', 'preview', 'live', 'report'];
   const currentIndex = stageOrder.indexOf(stage);
 
+  const pendingCount = round.agendas.filter(a => !a.voteResult || a.voteResult === 'pending').length;
+  const allReviewed = round.agendas.length > 0 && pendingCount === 0;
+
+  const handleSaveEdit = async () => {
+    await updateRound(round.id, { date: editDate, time: editTime, location: editLocation });
+    setEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditDate(round.date);
+    setEditTime(round.time);
+    setEditLocation(round.location);
+    setEditing(false);
+  };
+
   const cta: Record<StageKey, { label: string; onClick: () => void }> = {
-    agenda: { label: '안건 등록하기', onClick: openAgendaDrawer },
-    preview: { label: '사전 검토 열기', onClick: openPreviewModal },
-    live: { label: '본회의 시작', onClick: openMeetingStartModal },
+    agenda: { label: '안건 등록하기', onClick: () => openAgendaDrawer(round.id) },
+    preview: { label: '회의 안건 검토', onClick: () => openPreviewModal(round.id) },
+    live: { label: '본회의 시작', onClick: () => openMeetingStartModal(round.id) },
     report: { label: '보고서 확인', onClick: openReportModal },
   };
 
@@ -53,12 +76,66 @@ export default function CurrentMeetingCard({ round }: { round: MeetingRound }) {
             </span>
           </div>
           <h2 className="text-xl font-bold font-display text-ui-on-surface mb-2">경영집행위원회</h2>
-          <div className="flex flex-wrap gap-4 text-sm text-ui-variant">
-            <span className="flex items-center gap-1.5"><Calendar size={14} className="text-brand-primary" />{round.date}</span>
-            <span className="flex items-center gap-1.5"><Clock size={14} className="text-brand-primary" />{round.time}</span>
-            <span className="flex items-center gap-1.5"><MapPin size={14} className="text-brand-primary" />{round.location}</span>
-            <span className="flex items-center gap-1.5"><Users size={14} className="text-brand-primary" />{round.attendees.length}명</span>
-          </div>
+
+          {editing ? (
+            <div className="flex flex-col gap-2 mt-2">
+              <div className="flex flex-wrap gap-2">
+                <div className="flex items-center gap-1.5">
+                  <Calendar size={14} className="text-brand-primary shrink-0" />
+                  <input
+                    type="text"
+                    value={editDate}
+                    onChange={e => setEditDate(e.target.value)}
+                    className="text-sm border border-ui-high/50 rounded-lg px-2 py-1 w-32 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    placeholder="2026-05-01"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Clock size={14} className="text-brand-primary shrink-0" />
+                  <input
+                    type="text"
+                    value={editTime}
+                    onChange={e => setEditTime(e.target.value)}
+                    className="text-sm border border-ui-high/50 rounded-lg px-2 py-1 w-24 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    placeholder="10:00"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <MapPin size={14} className="text-brand-primary shrink-0" />
+                  <input
+                    type="text"
+                    value={editLocation}
+                    onChange={e => setEditLocation(e.target.value)}
+                    className="text-sm border border-ui-high/50 rounded-lg px-2 py-1 w-36 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    placeholder="장소"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={handleSaveEdit} className="flex items-center gap-1 text-xs font-semibold text-white bg-brand-primary px-3 py-1.5 rounded-lg hover:bg-brand-dim transition-colors cursor-pointer">
+                  <Check size={12} weight="bold" /> 저장
+                </button>
+                <button onClick={handleCancelEdit} className="flex items-center gap-1 text-xs font-semibold text-ui-variant hover:text-ui-on-surface px-3 py-1.5 rounded-lg hover:bg-ui-low transition-colors cursor-pointer">
+                  <X size={12} weight="bold" /> 취소
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-4 text-sm text-ui-variant items-center">
+              <span className="flex items-center gap-1.5"><Calendar size={14} className="text-brand-primary" />{round.date}</span>
+              <span className="flex items-center gap-1.5"><Clock size={14} className="text-brand-primary" />{round.time}</span>
+              <span className="flex items-center gap-1.5"><MapPin size={14} className="text-brand-primary" />{round.location}</span>
+              <span className="flex items-center gap-1.5"><Users size={14} className="text-brand-primary" />{round.attendees.length}명</span>
+              {isAdmin && (
+                <button
+                  onClick={() => setEditing(true)}
+                  className="flex items-center gap-1 text-xs font-semibold text-ui-variant hover:text-brand-primary transition-colors cursor-pointer"
+                >
+                  <PencilSimple size={13} /> 수정
+                </button>
+              )}
+            </div>
+          )}
         </div>
         <div className="text-right">
           <p className="text-xs text-ui-variant mb-1">현재 단계</p>
@@ -66,9 +143,43 @@ export default function CurrentMeetingCard({ round }: { round: MeetingRound }) {
             {STAGES[currentIndex].step}. {STAGES[currentIndex].label}
           </p>
           {isAdmin && (
-            <button onClick={cta[stage].onClick} className="btn-primary">
-              {cta[stage].label} <ArrowRight size={14} weight="bold" />
-            </button>
+            <div className="flex items-center gap-2 justify-end flex-wrap">
+              {/* 회의 안건 검토 (primary, first) */}
+              {stage === 'preview' && (
+                <button onClick={cta[stage].onClick} className="btn-primary relative">
+                  {cta[stage].label} <ArrowRight size={14} weight="bold" />
+                  {pendingCount > 0 && (
+                    <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1 leading-none">
+                      {pendingCount}
+                    </span>
+                  )}
+                </button>
+              )}
+              {stage === 'agenda' && (
+                <button onClick={cta[stage].onClick} className="btn-primary">
+                  {cta[stage].label} <ArrowRight size={14} weight="bold" />
+                </button>
+              )}
+              {stage === 'live' && (
+                <button onClick={cta[stage].onClick} className="btn-primary">
+                  {cta[stage].label} <ArrowRight size={14} weight="bold" />
+                </button>
+              )}
+              {stage === 'report' && (
+                <button onClick={cta[stage].onClick} className="btn-primary">
+                  {cta[stage].label} <ArrowRight size={14} weight="bold" />
+                </button>
+              )}
+              {/* 회의 시작 — 안건/검토 단계에서 추가 표시 */}
+              {(stage === 'preview' || stage === 'agenda') && (
+                <button
+                  onClick={() => openMeetingStartModal(round.id)}
+                  className="btn-primary text-sm"
+                >
+                  <Microphone size={14} /> 회의 시작
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
