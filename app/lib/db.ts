@@ -1,11 +1,11 @@
 import { Pool } from 'pg';
 
 const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
+  host: process.env.DB_HOST || '10.147.1.219',
   port: parseInt(process.env.DB_PORT || '5432'),
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'meeting_management',
+  user: process.env.DB_USER || 'devuser',
+  password: process.env.DB_PASSWORD || 'devpass123!',
+  database: process.env.DB_NAME || 'devdb',
   max: 10,
   idleTimeoutMillis: 30000,
 });
